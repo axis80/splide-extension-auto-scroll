@@ -351,8 +351,6 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
 
   /**
    * Updates the timestamp of the last render.
-   *
-   * @return null
    */
   function updateLastRenderTimestamp(): void {
     lastRenderTimestamp = performance.now();
