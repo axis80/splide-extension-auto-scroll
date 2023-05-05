@@ -4,6 +4,12 @@
  * @since 0.1.0
  */
 export interface AutoScrollOptions {
+
+  /**
+   * Whether to honor the speed setting in the main config or this extension's config.
+   */
+  speedMode?: string;
+
   /**
    * The scroll speed as pixel per frame.
    */

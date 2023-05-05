@@ -64,6 +64,7 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
   const { setIndex, getIndex } = Components.Controller;
   const { orient } = Components.Direction;
   const { toggle } = Components.Elements;
+  const { slideSize } = Components.Layout;
   const { Live } = Components;
   const { root } = Splide;
 
@@ -106,6 +107,11 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
    * Keeps the current position to restore.
    */
   let currPosition: number;
+
+  /**
+   * Tracks the time that the last animation frame was rendered.
+   */
+  let lastRenderTimestamp: number;
 
   /**
    * Sets up the component.
@@ -263,14 +269,18 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
       translate( destination );
       updateIndex( ( currPosition = getPosition() ) );
     } else {
-      pause( false );
+      if ( lastRenderTimestamp ) {
+        pause( false );
 
-      if ( autoScrollOptions.rewind ) {
-        Splide.go( autoScrollOptions.speed > 0 ? 0 : Components.Controller.getEnd() );
+        if ( autoScrollOptions.rewind ) {
+          const speedValue = ( autoScrollOptions.speedMode === 'main' ? options.speed : autoScrollOptions.speed );
+          Splide.go( speedValue > 0 ? 0 : Components.Controller.getEnd() );
+        }
       }
     }
 
     throttledUpdateArrows();
+    updateLastRenderTimestamp();
   }
 
   /**
@@ -281,8 +291,16 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
    * @return A computed destination.
    */
   function computeDestination( position: number ): number {
-    const speed = autoScrollOptions.speed || 1;
-    position += orient( speed );
+
+    let pixelsToMoveThisFrame = 0;
+    if ( autoScrollOptions.speedMode === 'main' && lastRenderTimestamp) {
+      const elapsedTime = performance.now() - lastRenderTimestamp;
+      const pixelsPerSecond = slideSize( null, null ) / ( options.speed / 1000 );
+      pixelsToMoveThisFrame = pixelsPerSecond * ( elapsedTime / 1000 );
+    } else {
+      pixelsToMoveThisFrame = autoScrollOptions.speed || 1;
+    }
+    position += orient( pixelsToMoveThisFrame );
 
     if ( Splide.is( SLIDE ) ) {
       position = clamp( position, getLimit( false ), getLimit( true ) );
@@ -329,6 +347,15 @@ export function AutoScroll( Splide: Splide, Components: Components, options: Opt
    */
   function isPaused(): boolean {
     return ! interval || interval.isPaused();
+  }
+
+  /**
+   * Updates the timestamp of the last render.
+   *
+   * @return null
+   */
+  function updateLastRenderTimestamp(): void {
+    lastRenderTimestamp = performance.now();
   }
 
   return {
